@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
 # source distribution.
@@ -15,24 +16,31 @@
 # You should have received a copy of the GNU Lesser General Public License along with this 
 # program.  If not, see http://www.gnu.org/licenses/.
 #
-AC_INIT(sourcesocket, 1.0.0)
-AM_INIT_AUTOMAKE(nostdinc)
+#!/bin/sh
 
-AC_PROG_CC
-AC_PROG_CXX
-AC_PROG_INSTALL
-
-AC_CORBA_ORB
-OSSIE_CHECK_OSSIE
-OSSIE_SDRROOT_AS_PREFIX
-
-# Dependencies
-export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
-PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 1.9 omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 1.0 bulkioInterfaces >= 1.9])
-OSSIE_ENABLE_LOG4CXX
-AX_BOOST_BASE([1.41])
-AX_BOOST_THREAD
-
-AC_CONFIG_FILES([Makefile])
-AC_OUTPUT
+if [ "$1" = "rpm" ]; then
+    # A very simplistic RPM build scenario
+    if [ -e sourcesocket.spec ]; then
+        mydir=`dirname $0`
+        tmpdir=`mktemp -d`
+        cp -r ${mydir} ${tmpdir}/sourcesocket-1.0.0
+        tar czf ${tmpdir}/sourcesocket-1.0.0.tar.gz --exclude=".svn" -C ${tmpdir} sourcesocket-1.0.0
+        rpmbuild -ta ${tmpdir}/sourcesocket-1.0.0.tar.gz
+        rm -rf $tmpdir
+    else
+        echo "Missing RPM spec file in" `pwd`
+        exit 1
+    fi
+else
+    for impl in cpp ; do
+        cd $impl
+        if [ -e build.sh ]; then
+            ./build.sh $*
+        elif [ -e reconf ]; then
+            ./reconf && ./configure && make
+        else
+            echo "No build.sh found for $impl"
+        fi
+        cd -
+    done
+fi
