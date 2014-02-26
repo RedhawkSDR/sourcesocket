@@ -81,19 +81,25 @@ Otherwise data will be swapped according to this value
     <kind kindtype="configure"/>
   </simple>
   <struct id="sri" mode="readwrite">
+    <description>bulkio sri metadata for this bulkio stream</description>
     <simple id="xstart" type="double">
+      <description>bulkio sri xstart value</description>
       <value>0.0</value>
     </simple>
     <simple id="xdelta" type="double">
+      <description>bulkio sri xdelta value.  This is 1.0/sampleRate</description>
       <value>1.0</value>
     </simple>
     <simple id="mode" type="short">
+      <description>bulkio sri mode value - 0 for real data and 1 for complex data</description>
       <value>0</value>
     </simple>
     <simple id="streamID" type="string">
+      <description>bulkio sri streamID for data stream</description>
       <value>default_stream_id</value>
     </simple>
     <simple id="blocking" type="boolean">
+      <description>bulkio sri blocking value.  Should backpressure be applied if data rate exceeeds processing rate.</description>
       <value>True</value>
     </simple>
     <configurationkind kindtype="configure"/>
