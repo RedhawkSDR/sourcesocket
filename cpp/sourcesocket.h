@@ -23,6 +23,7 @@
 #include "BoostServer.h"
 #include "BoostClient.h"
 #include "quickstats.h"
+#include "vectorswap.h"
 
 class sourcesocket_i;
 

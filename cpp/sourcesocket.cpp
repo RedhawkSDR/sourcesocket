@@ -27,7 +27,6 @@
 
 #include "sourcesocket.h"
 #include <sstream>
-#include "vectorswap.h"
 
 size_t gcd(size_t a, size_t b)
 {
