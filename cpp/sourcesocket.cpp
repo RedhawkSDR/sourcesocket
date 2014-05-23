@@ -55,15 +55,17 @@ sourcesocket_i::sourcesocket_i(const char *uuid, const char *label) :
 	theSri.ystart = 0.0;
 	theSri.ydelta = 0.0;
 	theSri.yunits = BULKIO::UNITS_NONE;
-	setPropertyChangeListener("sri", this, &sourcesocket_i::sriChanged);
-	setPropertyChangeListener("connection_type", this, &sourcesocket_i::updateSocket);
-	setPropertyChangeListener("ip_address", this, &sourcesocket_i::updateSocket);
-	setPropertyChangeListener("port", this, &sourcesocket_i::updateSocket);
-	setPropertyChangeListener("max_bytes", this, &sourcesocket_i::updateMaxBytes);
-	setPropertyChangeListener("min_bytes", this, &sourcesocket_i::updateXferLen);
-	setPropertyChangeListener("byte_swap", this, &sourcesocket_i::updateXferLen);
+	addPropertyChangeListener("byte_swap", this, &sourcesocket_i::byte_swapChanged);
+	addPropertyChangeListener("connection_type", this, &sourcesocket_i::connection_typeChanged);
+	addPropertyChangeListener("ip_address", this, &sourcesocket_i::ip_addressChanged);
+	addPropertyChangeListener("max_bytes", this, &sourcesocket_i::max_bytesChanged);
+	addPropertyChangeListener("min_bytes", this, &sourcesocket_i::min_bytesChanged);
+	addPropertyChangeListener("port", this, &sourcesocket_i::portChanged);
+	addPropertyChangeListener("sri", this, &sourcesocket_i::sriChanged);
 
-	sriChanged("");
+	const sri_struct dummy;
+
+	sriChanged(&dummy, (const sri_struct *) &theSri);
 	status = "initialize";
 	total_bytes=0;
 	bytes_per_sec=0;
@@ -77,6 +79,109 @@ sourcesocket_i::~sourcesocket_i()
 		delete server_;
 	if (client_)
 		delete client_;
+}
+
+void sourcesocket_i::byte_swapChanged(const unsigned short *oldValue, const unsigned short *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::recursive_mutex::scoped_lock lock(socketLock_);
+		byte_swap = *newValue;
+		updateXferLen();
+	}
+}
+
+void sourcesocket_i::connection_typeChanged(const std::string *oldValue, const std::string *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::recursive_mutex::scoped_lock lock(socketLock_);
+		connection_type = *newValue;
+		updateSocket();
+	}
+}
+
+void sourcesocket_i::ip_addressChanged(const std::string *oldValue, const std::string *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::recursive_mutex::scoped_lock lock(socketLock_);
+		ip_address = *newValue;
+		updateSocket();
+	}
+}
+
+void sourcesocket_i::max_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::recursive_mutex::scoped_lock lock(socketLock_);
+		max_bytes = *newValue;
+		updateMaxBytes();
+	}
+}
+
+void sourcesocket_i::min_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::recursive_mutex::scoped_lock lock(socketLock_);
+		min_bytes = *newValue;
+		updateXferLen();
+	}
+}
+
+void sourcesocket_i::portChanged(const unsigned short *oldValue, const unsigned short *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::recursive_mutex::scoped_lock lock(socketLock_);
+		port = *newValue;
+		updateSocket();
+	}
+}
+
+void sourcesocket_i::sriChanged(const sri_struct *oldValue, const sri_struct *newValue)
+{
+	bool changed = false;
+	boost::recursive_mutex::scoped_lock lock(socketLock_);
+
+	if (oldValue->blocking != newValue->blocking) {
+		sri.blocking = newValue->blocking;
+		changed = true;
+	}
+
+	if (oldValue->mode != newValue->mode) {
+		sri.mode = newValue->mode;
+		changed = true;
+	}
+
+	if (oldValue->streamID != newValue->streamID) {
+		sri.streamID = newValue->streamID;
+		changed = true;
+	}
+
+	if (oldValue->xdelta != newValue->xdelta) {
+		sri.xdelta = newValue->xdelta;
+		changed = true;
+	}
+
+	if (oldValue->xstart != newValue->xstart) {
+		changed = true;
+	}
+
+	if (changed) {
+		if (sri.streamID.empty())
+			sri.streamID =ossie::generateUUID();
+		theSri.hversion = 1;
+		theSri.xstart = sri.xstart;
+		theSri.xdelta = sri.xdelta;
+		theSri.mode = sri.mode;
+		theSri.streamID = sri.streamID.c_str();
+		theSri.blocking = sri.blocking;
+		dataOctet_out->pushSRI(theSri);
+		dataChar_out->pushSRI(theSri);
+		dataUshort_out->pushSRI(theSri);
+		dataShort_out->pushSRI(theSri);
+		dataUlong_out->pushSRI(theSri);
+		dataLong_out->pushSRI(theSri);
+		dataDouble_out->pushSRI(theSri);
+		dataFloat_out->pushSRI(theSri);
+	}
 }
 
 int sourcesocket_i::serviceFunction()
@@ -125,7 +230,7 @@ int sourcesocket_i::serviceFunction()
 	boost::recursive_mutex::scoped_lock lock(socketLock_);
 
 	if (server_==NULL && client_==NULL)
-		updateSocket("");
+		updateSocket();
 
 	if (server_)
 	{
@@ -195,32 +300,12 @@ int sourcesocket_i::serviceFunction()
 
 }
 
-void sourcesocket_i::sriChanged(const std::string& id)
+void sourcesocket_i::updateMaxBytes()
 {
-	if (sri.streamID.empty())
-		sri.streamID =ossie::generateUUID();
-	theSri.hversion = 1;
-	theSri.xstart = sri.xstart;
-	theSri.xdelta = sri.xdelta;
-	theSri.mode = sri.mode;
-	theSri.streamID = sri.streamID.c_str();
-	theSri.blocking = sri.blocking;
-	dataOctet_out->pushSRI(theSri);
-	dataChar_out->pushSRI(theSri);
-	dataUshort_out->pushSRI(theSri);
-	dataShort_out->pushSRI(theSri);
-	dataUlong_out->pushSRI(theSri);
-	dataLong_out->pushSRI(theSri);
-	dataDouble_out->pushSRI(theSri);
-	dataFloat_out->pushSRI(theSri);
+	updateXferLen();
+	updateSocket();
 }
-
-void sourcesocket_i::updateMaxBytes(const std::string& id)
-{
-	updateXferLen(id);
-	updateSocket(id);
-}
-void sourcesocket_i::updateXferLen(const std::string& id)
+void sourcesocket_i::updateXferLen()
 {
 	//Adjust the key properties dealing with i/o in here
 	//ENSURE THE FOLLOWING GOALS:
@@ -229,7 +314,6 @@ void sourcesocket_i::updateXferLen(const std::string& id)
 	//2.  max_bytes is a multiple of multSize less than (or equal) what the user has requested
 	//3.  min_bytes is a multipele of the multSize greather than (or equal to) what the user has requested
 
-	boost::recursive_mutex::scoped_lock (xferLock_);
 	if (byte_swap >1)
 		multSize_= lcm(sizeof(double), byte_swap);
 	else
@@ -247,9 +331,8 @@ void sourcesocket_i::updateXferLen(const std::string& id)
 		min_bytes = (min_bytes+multSize_-1) - ((min_bytes+multSize_-1)%multSize_);
 }
 
-void sourcesocket_i::updateSocket(const std::string& id)
+void sourcesocket_i::updateSocket()
 {
-	boost::recursive_mutex::scoped_lock lock(socketLock_);
 	if (client_)
 	{
 		delete client_;
