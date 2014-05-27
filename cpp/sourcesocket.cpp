@@ -47,7 +47,8 @@ PREPARE_LOGGING(sourcesocket_i)
 sourcesocket_i::sourcesocket_i(const char *uuid, const char *label) :
     sourcesocket_base(uuid, label),
     server_(NULL),
-    client_(NULL)
+    client_(NULL),
+    sendNewSri(true)
 {
 	theSri.hversion = 1;
 	theSri.xunits = BULKIO::UNITS_TIME;
@@ -84,8 +85,7 @@ sourcesocket_i::~sourcesocket_i()
 void sourcesocket_i::byte_swapChanged(const unsigned short *oldValue, const unsigned short *newValue)
 {
 	if (*oldValue != *newValue) {
-		boost::recursive_mutex::scoped_lock lock(socketLock_);
-		byte_swap = *newValue;
+		boost::recursive_mutex::scoped_lock lock(xferLock_);
 		updateXferLen();
 	}
 }
@@ -94,7 +94,6 @@ void sourcesocket_i::connection_typeChanged(const std::string *oldValue, const s
 {
 	if (*oldValue != *newValue) {
 		boost::recursive_mutex::scoped_lock lock(socketLock_);
-		connection_type = *newValue;
 		updateSocket();
 	}
 }
@@ -103,7 +102,6 @@ void sourcesocket_i::ip_addressChanged(const std::string *oldValue, const std::s
 {
 	if (*oldValue != *newValue) {
 		boost::recursive_mutex::scoped_lock lock(socketLock_);
-		ip_address = *newValue;
 		updateSocket();
 	}
 }
@@ -111,8 +109,8 @@ void sourcesocket_i::ip_addressChanged(const std::string *oldValue, const std::s
 void sourcesocket_i::max_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue)
 {
 	if (*oldValue != *newValue) {
-		boost::recursive_mutex::scoped_lock lock(socketLock_);
-		max_bytes = *newValue;
+		boost::recursive_mutex::scoped_lock xferlock(xferLock_);
+		boost::recursive_mutex::scoped_lock socklock(socketLock_);
 		updateMaxBytes();
 	}
 }
@@ -120,8 +118,7 @@ void sourcesocket_i::max_bytesChanged(const unsigned int *oldValue, const unsign
 void sourcesocket_i::min_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue)
 {
 	if (*oldValue != *newValue) {
-		boost::recursive_mutex::scoped_lock lock(socketLock_);
-		min_bytes = *newValue;
+		boost::recursive_mutex::scoped_lock lock(xferLock_);
 		updateXferLen();
 	}
 }
@@ -130,41 +127,15 @@ void sourcesocket_i::portChanged(const unsigned short *oldValue, const unsigned 
 {
 	if (*oldValue != *newValue) {
 		boost::recursive_mutex::scoped_lock lock(socketLock_);
-		port = *newValue;
 		updateSocket();
 	}
 }
 
 void sourcesocket_i::sriChanged(const sri_struct *oldValue, const sri_struct *newValue)
 {
-	bool changed = false;
 	boost::recursive_mutex::scoped_lock lock(socketLock_);
 
-	if (oldValue->blocking != newValue->blocking) {
-		sri.blocking = newValue->blocking;
-		changed = true;
-	}
-
-	if (oldValue->mode != newValue->mode) {
-		sri.mode = newValue->mode;
-		changed = true;
-	}
-
-	if (oldValue->streamID != newValue->streamID) {
-		sri.streamID = newValue->streamID;
-		changed = true;
-	}
-
-	if (oldValue->xdelta != newValue->xdelta) {
-		sri.xdelta = newValue->xdelta;
-		changed = true;
-	}
-
-	if (oldValue->xstart != newValue->xstart) {
-		changed = true;
-	}
-
-	if (changed) {
+	if (oldValue != newValue) {
 		if (sri.streamID.empty())
 			sri.streamID =ossie::generateUUID();
 		theSri.hversion = 1;
@@ -173,14 +144,7 @@ void sourcesocket_i::sriChanged(const sri_struct *oldValue, const sri_struct *ne
 		theSri.mode = sri.mode;
 		theSri.streamID = sri.streamID.c_str();
 		theSri.blocking = sri.blocking;
-		dataOctet_out->pushSRI(theSri);
-		dataChar_out->pushSRI(theSri);
-		dataUshort_out->pushSRI(theSri);
-		dataShort_out->pushSRI(theSri);
-		dataUlong_out->pushSRI(theSri);
-		dataLong_out->pushSRI(theSri);
-		dataDouble_out->pushSRI(theSri);
-		dataFloat_out->pushSRI(theSri);
+		sendNewSri=true;
 	}
 }
 
@@ -206,6 +170,19 @@ int sourcesocket_i::serviceFunction()
 	//send out data if we have more than we should
 	//loop until we have less than max_bytes left
 	//this should only be called if max_bytes was DECREASED since last loop
+	if (sendNewSri)
+	{
+		dataOctet_out->pushSRI(theSri);
+		dataChar_out->pushSRI(theSri);
+		dataUshort_out->pushSRI(theSri);
+		dataShort_out->pushSRI(theSri);
+		dataUlong_out->pushSRI(theSri);
+		dataLong_out->pushSRI(theSri);
+		dataDouble_out->pushSRI(theSri);
+		dataFloat_out->pushSRI(theSri);
+		sendNewSri=false;
+	}
+
 	if (data_.size() >= maxBytes)
 	{
 	    size_t numLoops = data_.size()/maxBytes;

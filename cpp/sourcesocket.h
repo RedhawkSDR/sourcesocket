@@ -90,6 +90,7 @@ class sourcesocket_i : public sourcesocket_base
     	BULKIO::PrecisionUTCTime tstamp_;
     	size_t multSize_;
     	std::vector<std::string> activePorts_;
+    	bool sendNewSri;
 };
 
 #endif
