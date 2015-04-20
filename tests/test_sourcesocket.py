@@ -25,6 +25,8 @@ import time
 
 import struct
 
+from NetworkSink import NetworkSink
+
 STRING_MAP = {'octet':'B',
               'char':'b',
               'short':'h',
@@ -156,7 +158,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.runTest(clientFirst=True, client = 'sourcesocket', dataPackets=self.U_LONG_DATA,portType='ulong')
     def testDULong(self):
         self.runTest(clientFirst=False, client = 'sourcesocket', dataPackets=self.U_LONG_DATA,portType='ulong')
-
+    
     def testALong(self):
         self.runTest(clientFirst=True, client = 'sinksocket', dataPackets=self.LONG_DATA,portType='long')
     def testBLong(self):
@@ -183,7 +185,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.runTest(clientFirst=True, client = 'sourcesocket', dataPackets=self.DOUBLE_DATA,portType='double')
     def testDDouble(self):
         self.runTest(clientFirst=False, client = 'sourcesocket', dataPackets=self.DOUBLE_DATA,portType='double')
-
+    
     #Test sending a bunch of little packets
     def testLITTLE_PACKETS(self):
         print "testLITTLE_PACKETS"
@@ -200,7 +202,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def testBIG_PACKETS_2(self):
         print "testBIG_PACKETS_2"
         self.runTest(clientFirst=True, client = 'sourcesocket', dataPackets=[range(200)*25000 for _ in xrange(2)])
-
+    
     #A bunch of tests for byte swapping
     #start with octet port and using various number of bytes for swapping
     #flip the bits and show they are equal for the output
@@ -310,7 +312,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         s= toStr(self.input,TYPE)
         so = toStr(self.output,TYPE)
         assert(s[:len(so)]==so)
-        
+    
     #here are some tests where we use the swapping defined as the default for each port by settign SWAP to 1
     #2 bytes for short & ushort
     def testByteSwap13(self):
@@ -321,7 +323,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         so = toStr(self.output,TYPE)
         f= flip(so,2)
         assert(s[:len(f)]==f)
-
+    
     def testByteSwap14(self):
         TYPE= 'short'
         SWAP = 1
@@ -534,7 +536,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         so = toStr(self.output,TYPE)
         f= flip(so,SWAP)
         assert(s[:len(f)]==f)    
-        
     
     def runTest(self, clientFirst=True, client = 'sinksocket',dataPackets=[],maxBytes=None,minBytes=None, portType='octet',byteSwapSrc=None, byteSwapSink=None):
         self.startSourceSocket()
@@ -612,24 +613,37 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.stopTest()
     
     def configureClient(self):
-        self.client.connection_type='client'
-        self.client.ip_address = "localhost"
-        self.client.port=self.PORT
-        self.assertTrue(self.client.connection_type=='client')
-        self.assertTrue(self.client.port==self.PORT)
+        if self.client == self.comp:
+            self.client.connection_type='client'
+            self.client.ip_address = "localhost"
+            self.client.port=self.PORT
+            self.assertTrue(self.client.connection_type=='client')
+            self.assertTrue(self.client.port==self.PORT)
+        else:
+            self.client.setConnection_type('client')
+            self.client.setIp_address('localhost')
+            self.client.setPort(self.PORT)
+            self.assertTrue(self.client.connection_type=='client')
+            self.assertTrue(self.client.port==self.PORT)
         
     def configureServer(self):
-        self.server.connection_type='server'
-        self.server.port=self.PORT
-        self.assertTrue(self.server.connection_type=='server')
-        self.assertTrue(self.server.port==self.PORT)        
+        if self.server == self.comp:
+            self.server.connection_type='server'
+            self.server.port=self.PORT
+            self.assertTrue(self.server.connection_type=='server')
+            self.assertTrue(self.server.port==self.PORT)        
+        else:
+            self.server.setConnection_type('server')
+            self.server.setPort(self.PORT)
+            self.assertTrue(self.server.connection_type=='server')
+            self.assertTrue(self.server.port==self.PORT)
 
     def startTest(self, client='sinksocket',portType='octet'):
         self.assertNotEqual(self.comp, None)
         self.src = sb.DataSource()
         self.sink = sb.DataSink()
         self.sourceSocket = self.comp
-        self.sinkSocket = sb.launch('../../sinksocket/sinksocket.spd.xml')
+        self.sinkSocket = NetworkSink()
         
         if client=='sinksocket':
             self.client = self.sinkSocket
@@ -638,10 +652,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.server = self.sinkSocket
             self.client = self.sourceSocket
         
-        sinkSocktName = 'data%s_in'%portType.capitalize()
+        sinkSocketName = '%sIn'%portType
         #print self.sinkSocket.api()
         #print self.sink.api()
-        self.src.connect(self.sinkSocket, sinkSocktName)
+        self.src.connect(self.sinkSocket, sinkSocketName)
         self.sourceSocket.connect(self.sink, None, 'data%s_out'%portType.capitalize())
         
     def stopTest(self):
