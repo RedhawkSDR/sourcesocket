@@ -615,13 +615,13 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def configureClient(self):
         if self.client == self.comp:
             self.client.connection_type='client'
-            self.client.ip_address = "localhost"
+            self.client.ip_address = "127.0.0.1"
             self.client.port=self.PORT
             self.assertTrue(self.client.connection_type=='client')
             self.assertTrue(self.client.port==self.PORT)
         else:
             self.client.setConnection_type('client')
-            self.client.setIp_address('localhost')
+            self.client.setIp_address('127.0.0.1')
             self.client.setPort(self.PORT)
             self.assertTrue(self.client.connection_type=='client')
             self.assertTrue(self.client.port==self.PORT)
