@@ -27,7 +27,7 @@ Prefix:         %{_prefix}
 %define _mandir        %{_prefix}/man
 %define _infodir       %{_prefix}/info
 
-Name:           sourcesocket
+Name:           rh.sourcesocket
 Version:        1.0.2
 Release:        1%{?dist}
 Summary:        Component %{name}
@@ -58,7 +58,7 @@ Component %{name}
 # Implementation cpp
 pushd cpp
 ./reconf
-%define _bindir %{_prefix}/dom/components/sourcesocket/cpp
+%define _bindir %{_prefix}/dom/components/rh/sourcesocket/cpp
 %configure
 make %{?_smp_mflags}
 popd
@@ -68,7 +68,7 @@ popd
 rm -rf $RPM_BUILD_ROOT
 # Implementation cpp
 pushd cpp
-%define _bindir %{_prefix}/dom/components/sourcesocket/cpp
+%define _bindir %{_prefix}/dom/components/rh/sourcesocket/cpp
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
 
@@ -79,9 +79,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,redhawk,redhawk,-)
-%dir %{_prefix}/dom/components/%{name}
-%{_prefix}/dom/components/%{name}/sourcesocket.scd.xml
-%{_prefix}/dom/components/%{name}/sourcesocket.prf.xml
-%{_prefix}/dom/components/%{name}/sourcesocket.spd.xml
-%{_prefix}/dom/components/%{name}/cpp
+%dir %{_prefix}/dom/components/rh/sourcesocket
+%{_prefix}/dom/components/rh/sourcesocket/sourcesocket.scd.xml
+%{_prefix}/dom/components/rh/sourcesocket/sourcesocket.prf.xml
+%{_prefix}/dom/components/rh/sourcesocket/sourcesocket.spd.xml
+%{_prefix}/dom/components/rh/sourcesocket/cpp
 
