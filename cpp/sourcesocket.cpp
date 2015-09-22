@@ -70,6 +70,7 @@ sourcesocket_i::sourcesocket_i(const char *uuid, const char *label) :
 	status = "initialize";
 	total_bytes=0;
 	bytes_per_sec=0;
+	updateMaxBytes();
 }
 
 sourcesocket_i::~sourcesocket_i()
