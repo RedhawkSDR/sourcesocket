@@ -31,6 +31,7 @@ import socket
 import struct
 import threading as _threading
 import time
+import copy
 
 from ossie.utils.sb import domainless as _domainless
 from ossie.utils.sb import io_helpers
@@ -55,7 +56,7 @@ class NetworkSink(io_helpers._SinkBase):
         self.ip_address      = ""
         self.port            = 32191
         self.total_bytes     = 0
-
+        self.leftover        = ""
         # Internal Members
         self._dataQueue      = _Queue.Queue()
         self._dataSocket     = None
@@ -241,8 +242,9 @@ class NetworkSink(io_helpers._SinkBase):
             if len(retval) == 0:
                 time.sleep(0.1)
                 continue
-
             data = self._formatData(retval)
+            data=self.leftover+data
+            self.leftover = ""
 
             # If the byte swap value is 1, then
             # use the size of the data
@@ -282,7 +284,10 @@ class NetworkSink(io_helpers._SinkBase):
                     data = self._flip(data, byteSwap)
 
             elif self.byte_swap > 1:
+                beforedata = copy.copy(data)
                 data = self._flip(data, self.byte_swap)
+                if len(data) < len(beforedata):
+                    self.leftover = str(beforedata[len(data):])
 
             self._pushToSocket(data)
 
