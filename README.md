@@ -1,8 +1,8 @@
-# REDHAWK Basic Components sourcesocket
+# REDHAWK Basic Components rh.sourcesocket
  
 ## Description
 
-Contains the source and build script for the REDHAWK Basic Components sourcesocket.This component reads data from a TCP socket and writes it to a BULKIO port.
+Contains the source and build script for the REDHAWK Basic Components rh.sourcesocket.This component reads data from a TCP socket and writes it to a BULKIO port.
  
 ## Installation Instructions
 To build from source, run the `build.sh` script found at the top level directory. To install to $SDRROOT run, `build.sh install`
@@ -13,4 +13,4 @@ This work is protected by Copyright. Please refer to the [Copyright File](COPYRI
 
 ## License
 
-REDHAWK Basic Components sourcesocket is licensed under the GNU Lesser General Public License (LGPL).
+REDHAWK Basic Components rh.sourcesocket is licensed under the GNU Lesser General Public License (LGPL).
