@@ -71,8 +71,8 @@ class sourcesocket_i : public sourcesocket_base
         void byte_swapChanged(const unsigned short *oldValue, const unsigned short *newValue);
         void connection_typeChanged(const std::string *oldValue, const std::string *newValue);
         void ip_addressChanged(const std::string *oldValue, const std::string *newValue);
-        void max_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue);
-        void min_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue);
+        void max_bytesChanged(const CORBA::ULong *oldValue, const CORBA::ULong *newValue);
+        void min_bytesChanged(const CORBA::ULong *oldValue, const CORBA::ULong *newValue);
         void portChanged(const unsigned short *oldValue, const unsigned short *newValue);
         void sriChanged(const sri_struct *oldValue, const sri_struct *newValue);
 

@@ -107,7 +107,7 @@ void sourcesocket_i::ip_addressChanged(const std::string *oldValue, const std::s
 	}
 }
 
-void sourcesocket_i::max_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue)
+void sourcesocket_i::max_bytesChanged(const CORBA::ULong *oldValue, const CORBA::ULong *newValue)
 {
 	if (*oldValue != *newValue) {
 		boost::recursive_mutex::scoped_lock xferlock(xferLock_);
@@ -116,7 +116,7 @@ void sourcesocket_i::max_bytesChanged(const unsigned int *oldValue, const unsign
 	}
 }
 
-void sourcesocket_i::min_bytesChanged(const unsigned int *oldValue, const unsigned int *newValue)
+void sourcesocket_i::min_bytesChanged(const CORBA::ULong *oldValue, const CORBA::ULong *newValue)
 {
 	if (*oldValue != *newValue) {
 		boost::recursive_mutex::scoped_lock lock(xferLock_);
