@@ -49,6 +49,7 @@ sourcesocket_i::sourcesocket_i(const char *uuid, const char *label) :
     client_(NULL),
     sendNewSri(true)
 {
+	port = 0; // the port Property does not have a default value, this will prevent it from being used before configured.
 	theSri.hversion = 1;
 	theSri.xunits = BULKIO::UNITS_TIME;
 	theSri.subsize = 0;
