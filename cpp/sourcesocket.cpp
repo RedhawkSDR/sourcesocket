@@ -205,12 +205,13 @@ int sourcesocket_i::serviceFunction()
 
 	int startIndex=data_.size();
 	// resize the data vector to grab data from the socket
-	data_.resize(max_bytes);
+	data_.resize(maxBytes);
 
 	boost::recursive_mutex::scoped_lock lock(socketLock_);
 
-	if (server_==NULL && client_==NULL)
+	if (server_==NULL && client_==NULL) {
 		updateSocket();
+	}
 
 	if (server_)
 	{
@@ -250,7 +251,7 @@ int sourcesocket_i::serviceFunction()
 	bytes_per_sec = stats_.newPacket(numRead);
 	total_bytes+=numRead;
 
-	if (! data_.empty() && data_.size() >= minBytes)
+	if (!data_.empty() && data_.size() >= minBytes)
 	{
 		size_t numLeft = data_.size()%multSize;
 		size_t pushBytes = data_.size() - numLeft;
