@@ -242,6 +242,7 @@ int sourcesocket_i::serviceFunction()
 	else
 	{
 		status="not_connected";
+		data_.resize(startIndex);
 		LOG_ERROR(sourcesocket_i, "no server or client initialized ");
 	}
 	int numRead = data_.size()-startIndex;
