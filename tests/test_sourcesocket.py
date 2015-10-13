@@ -610,13 +610,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 ##        
         print "len(self.input)", len(self.input), "len(self.output)", len(self.output)
         
-        self.assertTrue(len(self.output)> 0)
-        self.assertTrue(len(self.input)-len(self.output)< self.sourceSocket.max_bytes)
-        self.assertTrue(len(self.input)>=len(self.output))
-        if byteSwapSrc==byteSwapSink:
-            self.assertEquals(self.input[:len(self.output)],self.output)
-        
-        self.stopTest()
+        try:
+            self.assertTrue(len(self.output)> 0)
+            self.assertTrue(len(self.input)-len(self.output)< self.sourceSocket.max_bytes)
+            self.assertTrue(len(self.input)>=len(self.output))
+            if byteSwapSrc==byteSwapSink:
+                self.assertEquals(self.input[:len(self.output)],self.output)
+                
+        finally:
+            self.stopTest()
     
     def configureClient(self):
         if self.client == self.comp:
