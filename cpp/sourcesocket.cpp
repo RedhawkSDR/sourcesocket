@@ -26,7 +26,6 @@
 **************************************************************************/
 
 #include "sourcesocket.h"
-#include <sstream>
 
 size_t gcd(size_t a, size_t b)
 {
@@ -127,6 +126,9 @@ void sourcesocket_i::min_bytesChanged(const CORBA::ULong *oldValue, const CORBA:
 void sourcesocket_i::portChanged(const unsigned short *oldValue, const unsigned short *newValue)
 {
 	if (*oldValue != *newValue) {
+		if (*newValue < 1024) {
+			LOG_WARN(sourcesocket_i,"Configured port value " << *newValue << ". Ports below 1024 are reserved for privileged users (i.e. root).");
+		}
 		boost::recursive_mutex::scoped_lock lock(socketLock_);
 		updateSocket();
 	}
@@ -151,7 +153,6 @@ void sourcesocket_i::sriChanged(const sri_struct *oldValue, const sri_struct *ne
 
 int sourcesocket_i::serviceFunction()
 {
-	LOG_DEBUG(sourcesocket_i, "serviceFunction() example log message");
 	//cash off max_bytes & min_bytes in case their properties are updated mid service function
 	unsigned int maxBytes;
 	unsigned int minBytes;
@@ -243,9 +244,7 @@ int sourcesocket_i::serviceFunction()
 	}
 	int numRead = data_.size()-startIndex;
 
-	std::stringstream ss;
-	ss<<"Receveived " << numRead<< " bytes - max size = "<<max_bytes;
-	LOG_DEBUG(sourcesocket_i, ss.str())
+	LOG_DEBUG(sourcesocket_i, "Received " << numRead<< " bytes, max size = " << maxBytes);
 
 	bytes_per_sec = stats_.newPacket(numRead);
 	total_bytes+=numRead;
@@ -339,9 +338,9 @@ void sourcesocket_i::updateSocket()
 				delete server_;
 				server_=NULL;
 			}
-			LOG_ERROR(sourcesocket_i, "error starting server on port " << port << ": " << e.what());
+			LOG_ERROR(sourcesocket_i, "Exception starting server on port " << port << ": " << e.what());
 		}
-		LOG_INFO(sourcesocket_i, "set as SERVER :"<<port)
+		LOG_INFO(sourcesocket_i, "Set as SERVER :" << port);
 	}
 	else if (connection_type=="client" && port > 0 && !ip_address.empty())
 	{
@@ -351,22 +350,21 @@ void sourcesocket_i::updateSocket()
 			if(client_->connect())
 				status = "connected";
 			else
-				status = "disconnected";
-			std::stringstream ss;
-			ss<<"set as CLIENT " + ip_address + ":";
-			ss<<port;
-			LOG_INFO(sourcesocket_i, ss.str())
+				status = "not_connected";
+			LOG_INFO(sourcesocket_i, "Set as CLIENT " << ip_address << ":" << port);
 		}
 		catch (std::exception& e)
 		{
-			LOG_ERROR(sourcesocket_i, "error starting client " +std::string(e.what()));
+			LOG_ERROR(sourcesocket_i, "Exception starting client: " << e.what());
 		}
 	}
 	else
 	{
-		std::stringstream ss;
-		ss<<"Bad connection parameters - " + connection_type + " " + ip_address + ":";
-		ss<<port;
-		LOG_ERROR(sourcesocket_i, ss.str());
+		// If the component is not started yet, and the configuration is invalid, no need to log error
+		if(started()){
+			LOG_ERROR(sourcesocket_i, "Started with bad connection parameters - " << connection_type << " " << ip_address << ":" << port);
+		} else {
+			LOG_DEBUG(sourcesocket_i, "Not started, bad connection parameters - " << connection_type << " " << ip_address << ":" << port);
+		}
 	}
 }
