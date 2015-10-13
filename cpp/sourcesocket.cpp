@@ -339,14 +339,9 @@ void sourcesocket_i::updateSocket()
 				delete server_;
 				server_=NULL;
 			}
-			LOG_ERROR(sourcesocket_i, "error starting server " +std::string(e.what()));
-			//if (server_)
-			//	delete server_;
+			LOG_ERROR(sourcesocket_i, "error starting server on port " << port << ": " << e.what());
 		}
-		std::stringstream ss;
-		ss<<"set as SERVER :";
-		ss<<port;
-		LOG_INFO(sourcesocket_i, ss.str())
+		LOG_INFO(sourcesocket_i, "set as SERVER :"<<port)
 	}
 	else if (connection_type=="client" && port > 0 && !ip_address.empty())
 	{
