@@ -114,6 +114,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
+        time.sleep(0.1) # Without this, the component is stopped while executing first serviceFunction causing misleading output
         self.comp.stop()
         
            
