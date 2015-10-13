@@ -667,13 +667,13 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def stopTest(self):
         self.src.stop()
         self.sink.stop()
-        self.sinkSocket.stop()
         self.sourceSocket.stop()
+        self.sinkSocket.stop()
                 
         self.src.releaseObject()
         self.sink.releaseObject()
-        self.sinkSocket.releaseObject()
         self.sourceSocket.releaseObject()
+        self.sinkSocket.releaseObject()
         
         self.src = self.sink = self.sinkSocket = self.sourceSocket = self.client = self.server = None
     # TODO Add additional tests here
