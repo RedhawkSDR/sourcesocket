@@ -67,7 +67,7 @@ sourcesocket_i::sourcesocket_i(const char *uuid, const char *label) :
 	const sri_struct dummy;
 
 	sriChanged(&dummy, (const sri_struct *) &theSri);
-	status = "initialize";
+	status = "startup";
 	total_bytes=0;
 	bytes_per_sec=0;
 	updateMaxBytes();
@@ -76,7 +76,7 @@ sourcesocket_i::sourcesocket_i(const char *uuid, const char *label) :
 sourcesocket_i::~sourcesocket_i()
 {
 	boost::recursive_mutex::scoped_lock lock(socketLock_);
-	status = "deleted";
+	status = "not_connected";
 	if (server_)
 		delete server_;
 	if (client_)
@@ -221,7 +221,7 @@ int sourcesocket_i::serviceFunction()
 		}
 		else
 		{
-			status = "disconnected";
+			status = "not_connected";
 			data_.resize(startIndex);
 		}
 	}
@@ -235,12 +235,12 @@ int sourcesocket_i::serviceFunction()
 		else
 		{
 			data_.resize(startIndex);
-			status = "disconnected";
+			status = "not_connected";
 		}
 	}
 	else
 	{
-		status="error";
+		status="not_connected";
 		LOG_ERROR(sourcesocket_i, "no server or client initialized ");
 	}
 	int numRead = data_.size()-startIndex;
@@ -330,7 +330,7 @@ void sourcesocket_i::updateSocket()
 			if (server_->is_connected())
 				status = "connected";
 			else
-				status = "disconnected";
+				status = "not_connected";
 		}
 		catch (std::exception& e)
 		{
