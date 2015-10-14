@@ -53,14 +53,14 @@ class sourcesocket_i : public sourcesocket_base
         		{
         			if (numSwap != sizeof(U))
         			{
-        				std::stringstream ss;
-        				ss<<"data size "<<sizeof(U)<<" is not equal to byte swap size "<< numSwap<<". ";
-        				LOG_WARN(sourcesocket_i, ss.str());
+        				LOG_WARN(sourcesocket_i, "Data size " << sizeof(U) << " is not equal to byte swap size " << numSwap << ".");
         			}
         			vectorSwap(start, output, numSwap);
         		}
         		else
+                {
         			memcpy(&output[0], start, numBytes);
+                }
         		tstamp_ = bulkio::time::utils::now();;
         		port->pushPacket(output, tstamp_, false, streamID);
         	}
@@ -92,5 +92,22 @@ class sourcesocket_i : public sourcesocket_base
     	std::vector<std::string> activePorts_;
     	bool sendNewSri;
 };
+
+/*std::string hexStr(char* data, size_t len, size_t group=0){
+    std::stringstream ss;
+    ss << std::hex;
+    for(size_t i=0;i<len;++i){
+        if(i%40==0){
+            ss << "\n";
+        } else {
+            ss << " ";
+        }
+        if(group>0 && i%group==0){
+            ss << " 0x";
+        }
+        ss << std::setw(2) << std::setfill('0') << (int)data[i];
+    }
+    return ss.str();
+}*/
 
 #endif
