@@ -33,7 +33,7 @@ template<typename T, typename U> void vectorSwap(std::vector<T, U>& dataVec, con
 		size_t numSwap = totalBytes/numBytes;
 		if (numBytes==2)
 		{
-			unsigned short* p = reinterpret_cast< unsigned short* >(&dataVec[0]);
+			uint16_t* p = reinterpret_cast< uint16_t* >(&dataVec[0]);
 			for (size_t i=0; i!=numSwap; i++)
 			{
 				*p = bswap_16(*p);
@@ -41,7 +41,7 @@ template<typename T, typename U> void vectorSwap(std::vector<T, U>& dataVec, con
 			}
 		} else if (numBytes==4)
 		{
-			unsigned int* p = reinterpret_cast< unsigned int* >(&dataVec[0]);
+			uint32_t* p = reinterpret_cast< uint32_t* >(&dataVec[0]);
 			for (size_t i=0; i!=numSwap; i++)
 			{
 				*p = bswap_32(*p);
@@ -49,7 +49,7 @@ template<typename T, typename U> void vectorSwap(std::vector<T, U>& dataVec, con
 			}
 		} else if(numBytes==8)
 		{
-			unsigned long* p = reinterpret_cast< unsigned long* >(&dataVec[0]);
+			uint64_t* p = reinterpret_cast< uint64_t* >(&dataVec[0]);
 			for (size_t i=0; i!=numSwap; i++)
 			{
 				*p = bswap_64(*p);
@@ -82,8 +82,8 @@ template<typename T, typename U> void vectorSwap(char* data, std::vector<T, U>& 
 		size_t numSwap = totalBytes/numBytes;
 		if (numBytes==2)
 		{
-			unsigned short* from = reinterpret_cast< unsigned short* >(data);
-			unsigned short* to = reinterpret_cast< unsigned short* >(&outVec[0]);
+			uint16_t* from = reinterpret_cast< uint16_t* >(data);
+			uint16_t* to = reinterpret_cast< uint16_t* >(&outVec[0]);
 			for (size_t i=0; i!=numSwap; i++)
 			{
 				*to = bswap_16(*from);
@@ -92,8 +92,8 @@ template<typename T, typename U> void vectorSwap(char* data, std::vector<T, U>& 
 			}
 		} else if (numBytes==4)
 		{
-			unsigned int* from = reinterpret_cast< unsigned int* >(data);
-			unsigned int* to = reinterpret_cast< unsigned int* >(&outVec[0]);
+			uint32_t* from = reinterpret_cast< uint32_t* >(data);
+			uint32_t* to = reinterpret_cast< uint32_t* >(&outVec[0]);
 			for (size_t i=0; i!=numSwap; i++)
 			{
 				*to = bswap_32(*from);
@@ -102,8 +102,8 @@ template<typename T, typename U> void vectorSwap(char* data, std::vector<T, U>& 
 			}
 		} else if(numBytes==8)
 		{
-			unsigned long* from = reinterpret_cast< unsigned long* >(data);
-			unsigned long* to = reinterpret_cast< unsigned long* >(&outVec[0]);
+			uint64_t* from = reinterpret_cast< uint64_t* >(data);
+			uint64_t* to = reinterpret_cast< uint64_t* >(&outVec[0]);
 			for (size_t i=0; i!=numSwap; i++)
 			{
 				*to = bswap_64(*from);
