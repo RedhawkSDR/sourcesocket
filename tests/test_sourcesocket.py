@@ -547,77 +547,75 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.startSourceSocket()
         self.startTest(client, portType)
         
-        if maxBytes!=None:
-            self.sourceSocket.max_bytes=maxBytes
-        if minBytes!=None:
-            self.sourceSocket.min_bytes=minBytes
-        
-        #print self.sourceSocket.query([])
-        
-        if clientFirst:
-            self.configureClient()
-            self.configureServer()
-        else:
-            self.configureServer()
-            self.configureClient()
-        
-        if byteSwapSrc!=None:
-            self.sourceSocket.byte_swap=byteSwapSrc
-        
-        if byteSwapSink!=None:
-            self.sinkSocket.byte_swap=byteSwapSink
-        
-        self.src.start()
-        self.sink.start()
-        self.sourceSocket.start()
-        self.sinkSocket.start()
-        
-        self.input=[]
-        self.output=[]
-        time.sleep(.1)
-        for packet in dataPackets:
-            self.input.extend(packet)
-            #time.sleep(1e-6)
-            self.src.push(packet, False, "test stream", 1.0)
-            newdata =self.sink.getData()
-            if newdata:
-                if portType ==  'octet':
-                    self.output.extend([ord(x) for x in newdata])
-                else:
-                    self.output.extend(newdata)
-        time.sleep(.25)
+        try: # This is to make sure we clean up if there is an exception due to either error or failure.
+            if maxBytes!=None:
+                self.sourceSocket.max_bytes=maxBytes
+            if minBytes!=None:
+                self.sourceSocket.min_bytes=minBytes
 
-        noData=0
-        while True:
-            newdata =self.sink.getData()
-            if newdata:
-                noData=0
-                if portType == 'octet':
-                    self.output.extend([ord(x) for x in newdata])
-                else:
-                    self.output.extend(newdata)
+            #print self.sourceSocket.query([])
+
+            if clientFirst:
+                self.configureClient()
+                self.configureServer()
             else:
-                noData+=1
-                if noData==200:
-                    break
-                time.sleep(.01)
+                self.configureServer()
+                self.configureClient()
 
-        print "self.sourceSocket.bytes_per_sec", self.sourceSocket.bytes_per_sec
-        print "self.sinkSocket.bytes_per_sec", self.sinkSocket.bytes_per_sec
-##        
-        print "self.sinkSocket.total_bytes", self.sinkSocket.total_bytes
-        print "self.sourceSocket.total_bytes",  self.sourceSocket.total_bytes
-##        
-        print "len(self.input)", len(self.input), "len(self.output)", len(self.output)
+            if byteSwapSrc!=None:
+                self.sourceSocket.byte_swap=byteSwapSrc
+
+            if byteSwapSink!=None:
+                self.sinkSocket.byte_swap=byteSwapSink
+
+            self.src.start()
+            self.sink.start()
+            self.sourceSocket.start()
+            self.sinkSocket.start()
+
+            self.input=[]
+            self.output=[]
+            time.sleep(.1)
+            for packet in dataPackets:
+                self.input.extend(packet)
+                #time.sleep(1e-6)
+                self.src.push(packet, False, "test stream", 1.0)
+                newdata =self.sink.getData()
+                if newdata:
+                    if portType ==  'octet':
+                        self.output.extend([ord(x) for x in newdata])
+                    else:
+                        self.output.extend(newdata)
+            time.sleep(.25)
+
+            noData=0
+            while True:
+                newdata =self.sink.getData()
+                if newdata:
+                    noData=0
+                    if portType == 'octet':
+                        self.output.extend([ord(x) for x in newdata])
+                    else:
+                        self.output.extend(newdata)
+                else:
+                    noData+=1
+                    if noData==200:
+                        break
+                    time.sleep(.01)
+
+            print "self.sourceSocket.bytes_per_sec", self.sourceSocket.bytes_per_sec
+            print "self.sinkSocket.bytes_per_sec", self.sinkSocket.bytes_per_sec
+            print "self.sinkSocket.total_bytes", self.sinkSocket.total_bytes
+            print "self.sourceSocket.total_bytes",  self.sourceSocket.total_bytes
+            print "len(self.input)", len(self.input), "len(self.output)", len(self.output)
         
-        try:
             self.assertTrue(len(self.output)> 0)
             self.assertTrue(len(self.input)-len(self.output)< self.sourceSocket.max_bytes)
             self.assertTrue(len(self.input)>=len(self.output))
             if byteSwapSrc==byteSwapSink:
                 self.assertEquals(self.input[:len(self.output)],self.output)
                 
-        finally:
+        finally: # always clean up
             self.stopTest()
     
     def configureClient(self):
