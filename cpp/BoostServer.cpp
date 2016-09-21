@@ -61,7 +61,8 @@ void session::handle_read(const boost::system::error_code& error,
 	}
 	else
 	{
-		std::cerr<<"ERROR reading session data: "<<error<<std::endl;
+		if (error != boost::asio::error::eof)
+			std::cerr<<"ERROR reading session data: "<<error<<std::endl;
 		server_->closeSession(shared_from_this());
 	}
 }
