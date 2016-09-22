@@ -16,187 +16,172 @@
  * program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#include <omniORB4/CORBA.h>
 #include "BoostServer.h"
 
-void session::start()
-{
-	socket_.async_read_some(boost::asio::buffer(read_data_, max_length_),
-			boost::bind(&session::handle_read, this,
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+PREPARE_LOGGING(Session)
+PREPARE_LOGGING(Server)
+
+Session::Session(boost::asio::io_service& io_service, Server* s,
+        size_t max_sock_read_size, short port) :
+        socket_(io_service), server_(s), sock_read_buf_(max_sock_read_size) {
+    port_ = port;
 }
 
-template<typename T, typename U>
-void session::write(std::vector<T, U>& data)
-{
-	if (socket_.is_open())
-	{
-		boost::mutex::scoped_lock lock(writeLock_);
-		size_t numBytes = data.size()*sizeof(T);
-		writeBuffer_.push_back(std::vector<char>(numBytes));
-		memcpy(&writeBuffer_.back()[0],&data[0],numBytes);
-		if (writeBuffer_.size()==1)
-		{
-			boost::asio::async_write(socket_,
-				boost::asio::buffer(writeBuffer_[0]),
-				boost::bind(&session::handle_write, shared_from_this(),
-						boost::asio::placeholders::error));
-		}
-	}
+tcp::socket& Session::Socket() {
+    return socket_;
 }
 
-void session::handle_read(const boost::system::error_code& error,
-		size_t bytes_transferred)
-{
-	if (!error)
-	{
-		read_data_.resize(bytes_transferred);
-		server_->newSessionData(read_data_);
-		read_data_.resize(max_length_);
-		socket_.async_read_some(boost::asio::buffer(read_data_, max_length_),
-				boost::bind(&session::handle_read, shared_from_this(),
-						boost::asio::placeholders::error,
-						boost::asio::placeholders::bytes_transferred));
-	}
-	else
-	{
-		if (error != boost::asio::error::eof)
-			std::cerr<<"ERROR reading session data: "<<error<<std::endl;
-		server_->closeSession(shared_from_this());
-	}
+void Session::Start() {
+    //boost::asio::socket_base::receive_buffer_size option;
+    //socket_.get_option(option);
+    //LOG_INFO(Session,this->port_<<"::Session::Start - receive_buffer_size is "<<option.value());
+    socket_.async_read_some(boost::asio::buffer(sock_read_buf_),
+            boost::bind(&Session::HandleRead, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred));
 }
 
-void session::handle_write(const boost::system::error_code& error)
-{
-	boost::mutex::scoped_lock lock(writeLock_);
-	writeBuffer_.pop_front();
-	if (error)
-	{
-		std::cerr<<"ERROR writting session data: "<<error<<std::endl;
-		server_->closeSession(shared_from_this());
-	}
-	else if(!writeBuffer_.empty())
-	{
-		boost::asio::async_write(socket_,
-						boost::asio::buffer(writeBuffer_[0]),
-						boost::bind(&session::handle_write, shared_from_this(),
-								boost::asio::placeholders::error));
-	}
+void Session::HandleRead(const boost::system::error_code& error,
+        size_t bytes_transferred) {
+    if (!error) {
+        LOG_DEBUG(Session,
+                this->port_<< " Read " << bytes_transferred << " from socket; sending data to server");
+        server_->NewSessionData((char*) &sock_read_buf_[0], bytes_transferred);
+        socket_.async_read_some(boost::asio::buffer(sock_read_buf_),
+                boost::bind(&Session::HandleRead, shared_from_this(),
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred));
+    } else {
+        if (error == boost::asio::error::eof) {
+            LOG_DEBUG(Session,
+                    this->port_<< " Client closed connection, closing session: "<<error);
+        } else {
+            LOG_ERROR(Session,
+                    this->port_<< " Error reading session data, closing session: "<<error);
+        }
+        server_->CloseSession(shared_from_this());
+    }
 }
 
-
-template<typename T, typename U>
-void server::write(std::vector<T, U>& data)
-{
-	boost::mutex::scoped_lock lock(sessionsLock_);
-	for (std::list<session_ptr>::iterator i = sessions_.begin(); i!=sessions_.end(); i++)
-	{
-		session_ptr thisSession= *i;
-		thisSession->write(data);
-	}
-}
-template<typename T>
-void server::read(std::vector<char, T> & data, size_t index)
-{
-	boost::mutex::scoped_lock lock(pendingDataLock_);
-	int numRead=std::min(data.size()-index, pendingData_.size());
-	data.resize(index+numRead);
-	int j=0;
-	for (unsigned int i=index; i!=data.size(); i++)
-	{
-		data[i]=pendingData_[j];
-		j++;
-	}
-	pendingData_.erase(pendingData_.begin(), pendingData_.begin()+numRead);
+Server::Server(short port, size_t buffer_len, size_t max_sock_read_size) :
+        acceptor_(io_service_, tcp::endpoint(tcp::v4(), port)), thread_(NULL), max_sock_read_size_(
+                max_sock_read_size), pending_buf_(buffer_len * max_sock_read_size), port_(
+                port), tcp_nodelay_(false), configure_socket(false) {
+    StartAccept();
+    thread_ = new boost::thread(boost::bind(&Server::RunIoService, this));
 }
 
-bool server::is_connected()
-{
-	return !sessions_.empty();
+Server::Server(short port, size_t buffer_len, size_t max_sock_read_size, bool tcp_nodelay) :
+        acceptor_(io_service_, tcp::endpoint(tcp::v4(), port)), thread_(NULL), max_sock_read_size_(
+                max_sock_read_size), pending_buf_(buffer_len * max_sock_read_size), port_(
+                port), tcp_nodelay_(tcp_nodelay), configure_socket(true) {
+    StartAccept();
+    thread_ = new boost::thread(boost::bind(&Server::RunIoService, this));
 }
 
-template<typename T>
-void server::newSessionData(std::vector<char, T>& data)
-{
-	boost::mutex::scoped_lock lock(pendingDataLock_);
-	int oldSize=pendingData_.size();
-	pendingData_.resize(oldSize+data.size());
-	char* newData= &data[0];
-	for (unsigned int i=oldSize; i!=pendingData_.size(); i++)
-	{
-		pendingData_[i]=*newData;
-		newData++;
-	}
-}
-void server::closeSession(session_ptr ptr)
-{
-	boost::mutex::scoped_lock lock(sessionsLock_);
-	for (std::list<session_ptr>::iterator i=sessions_.begin(); i!=sessions_.end(); i++)
-	{
-		if (ptr==*i)
-		{
-			sessions_.remove(ptr);
-			break;
-		}
-	}
+Server::~Server() {
+    {
+        boost::mutex::scoped_lock lock(sessions_lock_);
+        sessions_.clear();
+    }
+    if (thread_) {
+        io_service_.stop();
+        thread_->join();
+        delete thread_;
+    }
 }
 
-
-void server::start_accept()
-{
-	{
-		session_ptr new_session(new session(io_service_, this, maxLength_));
-
-		acceptor_.async_accept(new_session->socket(),
-				boost::bind(&server::handle_accept, this, new_session,
-						boost::asio::placeholders::error));
-	}
+size_t Server::Read(char* data, size_t size) {
+    LOG_DEBUG(Server,
+            this->port_<< "::Server::read() requesting "<<size<<" Bytes from pending_buf_, size="<<pending_buf_.size());
+    size_t numBytes = pending_buf_.tryread(data, size);
+    LOG_DEBUG(Server,
+            this->port_<< "::Server::read() got "<<numBytes<<" Bytes from pending_buf_, size="<<pending_buf_.size());
+    return numBytes;
 }
 
-void server::handle_accept(session_ptr new_session,
-		const boost::system::error_code& error)
-{
-		if (!error)
-		{
-			{
-				boost::mutex::scoped_lock lock(sessionsLock_);
-				sessions_.push_back(new_session);
-
-				session_ptr new_session(new session(io_service_, this, maxLength_));
-				acceptor_.async_accept(new_session->socket(),
-								boost::bind(&server::handle_accept, this, new_session,
-										boost::asio::placeholders::error));
-			}
-			new_session->start();
-		}
-		start_accept();
+bool Server::is_connected() {
+    return !sessions_.empty();
 }
 
-void server::run()
-{
-	try
-	{
-		io_service_.run();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << "Exception in thread: " << e.what() << "\n";
-		std::exit(1);
-	}
+bool Server::is_empty() {
+    return pending_buf_.empty();
 }
 
-//need to put these bad boys in here for templates or you get undefined references when linking ...grr...
+void Server::NewSessionData(char* data, size_t size) {
+    LOG_DEBUG(Server,
+            this->port_<< " newSessionData attempting to write "<<size<<" bytes to pending_buf_, size="<<pending_buf_.size());
+    size_t numBytes = pending_buf_.write(data, size);
+    LOG_DEBUG(Server,
+            this->port_<< " newSessionData wrote "<<numBytes<<" to pending_buf_, size="<<pending_buf_.size());
 
-template void server::read(std::vector<char, std::allocator<char> >&, size_t);
-//template void server::read(std::vector<char, _seqVector::seqVectorAllocator<char> >&, size_t);
+}
 
-template void server::write(std::vector<unsigned char, std::allocator<unsigned char> >&);
-template void server::write(std::vector<char, std::allocator<char> >&);
-template void server::write(std::vector<signed char, std::allocator<signed char> >&);
-template void server::write(std::vector<CORBA::Short, std::allocator<CORBA::Short> >&);
-template void server::write(std::vector<CORBA::UShort, std::allocator<CORBA::UShort> >&);
-template void server::write(std::vector<CORBA::Long, std::allocator<CORBA::Long> >&);
-template void server::write(std::vector<CORBA::ULong, std::allocator<CORBA::ULong> >&);
-template void server::write(std::vector<CORBA::Float, std::allocator<CORBA::Float> >&);
-template void server::write(std::vector<CORBA::Double, std::allocator<CORBA::Double> >&);
+void Server::CloseSession(SessionPtr ptr) {
+    boost::mutex::scoped_lock lock(sessions_lock_);
+    for (std::list<SessionPtr>::iterator i = sessions_.begin();
+            i != sessions_.end(); i++) {
+        if (ptr == *i) {
+            sessions_.remove(ptr);
+            break;
+        }
+    }
+}
+
+void Server::StartAccept() {
+    {
+        SessionPtr new_session(
+                new Session(io_service_, this, max_sock_read_size_,
+                        this->port_));
+        acceptor_.async_accept(new_session->Socket(),
+                boost::bind(&Server::HandleAccept, this, new_session,
+                        boost::asio::placeholders::error));
+    }
+}
+
+void Server::HandleAccept(SessionPtr new_session,
+        const boost::system::error_code& error) {
+    if (!error) {
+        {
+            boost::asio::ip::tcp::no_delay option1;
+            boost::asio::socket_base::receive_buffer_size option2;
+
+            new_session->Socket().get_option(option1);
+            new_session->Socket().get_option(option2);
+            bool actual_tcpnodelay = option1.value();
+            int actual_rx_buff_sz = option2.value();
+            LOG_DEBUG(Server,"BEFORE: receive_buffer_size is "<<actual_rx_buff_sz<<" and tcp nodelay is "<<actual_tcpnodelay);
+
+            if( configure_socket ) {
+                //boost::asio::ip::tcp::no_delay option1(tcp_nodelay_);
+                //boost::asio::socket_base::receive_buffer_size option2(max_sock_read_size_);
+                option1 = tcp_nodelay_;
+                option2 = max_sock_read_size_;
+                new_session->Socket().set_option(option1);
+                new_session->Socket().set_option(option2);
+            }
+
+            new_session->Socket().get_option(option1);
+            new_session->Socket().get_option(option2);
+            actual_tcpnodelay = option1.value();
+            actual_rx_buff_sz = option2.value();
+            LOG_INFO(Server,"receive_buffer_size is "<<actual_rx_buff_sz<<" and tcp nodelay is "<<actual_tcpnodelay);
+
+            boost::mutex::scoped_lock lock(sessions_lock_);
+            sessions_.push_back(new_session);
+        }
+        new_session->Start();
+    }
+    StartAccept();
+}
+
+void Server::RunIoService() {
+    try {
+        io_service_.run();
+    } catch (std::exception& e) {
+        LOG_ERROR(Server,
+                this->port_<< " Exception in io_service thread: "<<e.what());
+        std::exit(1);
+    }
+}
+

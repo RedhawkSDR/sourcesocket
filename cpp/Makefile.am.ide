@@ -20,9 +20,11 @@
 # and choosing Resource Configurations -> Exclude from build. Re-include files
 # by opening the Properties dialog of your project and choosing C/C++ Build ->
 # Tool Chain Editor, and un-checking "Exclude resource from build "
-redhawk_SOURCES_auto = BoostClient.h
+redhawk_SOURCES_auto = BoostClient.cpp
+redhawk_SOURCES_auto += BoostClient.h
 redhawk_SOURCES_auto += BoostServer.cpp
 redhawk_SOURCES_auto += BoostServer.h
+redhawk_SOURCES_auto += BoundedBuffer.h
 redhawk_SOURCES_auto += main.cpp
 redhawk_SOURCES_auto += quickstats.h
 redhawk_SOURCES_auto += sourcesocket.cpp

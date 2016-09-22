@@ -28,107 +28,65 @@
 #include <boost/asio/error.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <deque>
+#include <ossie/debug.h>
+
+#include "BoundedBuffer.h"
 
 using boost::asio::ip::tcp;
 
-class server;
+class Server;
 
-class session :  public boost::enable_shared_from_this<session>
-{
+class Session: public boost::enable_shared_from_this<Session> {
+ENABLE_LOGGING
 public:
-	session(boost::asio::io_service& io_service, server* s, size_t max_length)
-	: socket_(io_service),
-	  server_(s),
-	  read_data_(max_length),
-	  max_length_(max_length)
-	{
-	}
-
-	tcp::socket& socket()
-	{
-		return socket_;
-	}
-
-	void start();
-
-	template<typename T, typename U>
-	void write(std::vector<T, U>& data);
-
-
+    Session(boost::asio::io_service& io_service, Server* s,
+            size_t max_sock_read_size, short port = 0);
+    tcp::socket& Socket();
+    void Start();
 
 private:
-	void handle_read(const boost::system::error_code& error,
-			size_t bytes_transferred);
+    void HandleRead(const boost::system::error_code& error,
+            size_t bytes_transferred);
 
-
-	void handle_write(const boost::system::error_code& error);
-
-
-	tcp::socket socket_;
-	server* server_;
-	std::vector<char> read_data_;
-	size_t max_length_;
-	std::deque<std::vector<char> > writeBuffer_;
-	boost::mutex writeLock_;
-
+    tcp::socket socket_;
+    Server* server_;
+    std::vector<char> sock_read_buf_;
+    short port_;
 };
 
-typedef boost::shared_ptr<session> session_ptr;
+typedef boost::shared_ptr<Session> SessionPtr;
 
-class server
-{
+class Server {
+ENABLE_LOGGING
 public:
-	server(short port, size_t maxLength=1024) :
-		acceptor_(io_service_, tcp::endpoint(tcp::v4(), port)),
-		thread_(NULL),
-		maxLength_(maxLength)
-	{
-		start_accept();
-		thread_ = new boost::thread(boost::bind(&server::run, this));
-	}
+    Server(short port, size_t buffer_len = 64, size_t max_sock_read_size = 64 * 1024);
+    Server(short port, size_t buffer_len, size_t max_sock_read_size, bool tcp_nodelay);
 
-	~server()
-	{
-		{
-			boost::mutex::scoped_lock lock(sessionsLock_);
-			sessions_.clear();
-		}
-		if(thread_)
-		{
-			io_service_.stop();
-			thread_->join();
-			delete thread_;
-		}
-	}
+    ~Server();
 
-	template<typename T, typename U>
-	void write(std::vector<T, U>& data);
-	template<typename T>
-	void read(std::vector<char, T> & data, size_t index=0);
-	bool is_connected();
+    size_t Read(char* data, size_t size);
+    bool is_connected();
+    bool is_empty();
 
-	template<typename T>
-	void newSessionData(std::vector<char, T>& data);
-	void closeSession(session_ptr ptr);
-
+    void NewSessionData(char* data, size_t size);
+    void CloseSession(SessionPtr ptr);
 
 private:
-	void start_accept();
-	void handle_accept(session_ptr new_session,
-			const boost::system::error_code& error);
+    void StartAccept();
+    void HandleAccept(SessionPtr new_session,
+            const boost::system::error_code& error);
+    void RunIoService();
 
-	void run();
-
-	boost::asio::io_service io_service_;
-	tcp::acceptor acceptor_;
-	std::list<session_ptr> sessions_;
-	std::vector<char> pendingData_;
-	boost::mutex sessionsLock_;
-	boost::mutex pendingDataLock_;
-	boost::thread* thread_;
-	size_t maxLength_;
+    boost::asio::io_service io_service_;
+    tcp::acceptor acceptor_;
+    std::list<SessionPtr> sessions_;
+    boost::mutex sessions_lock_;
+    boost::thread* thread_;
+    size_t max_sock_read_size_;
+    BoundedBuffer<char> pending_buf_;
+    short port_;
+    bool tcp_nodelay_;
+    bool configure_socket;
 };
-
 
 #endif /* BOOSTSERVER_H_ */

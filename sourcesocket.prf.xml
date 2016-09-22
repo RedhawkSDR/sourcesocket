@@ -80,6 +80,35 @@ Otherwise data will be swapped according to this value
     <value>0</value>
     <kind kindtype="configure"/>
   </simple>
+  <simple id="internal_buffer_size" mode="readwrite" name="internal_buffer_size" type="ulong">
+    <description>Number of full socket receive buffers to be able to store.</description>
+    <value>64</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <struct id="socket_settings" mode="readwrite" name="socket_settings">
+    <description>Advanced socket settings</description>
+    <simple id="socket::enable" name="enable" type="boolean">
+      <description>If true, socket settings to be applied to the kernel socket buffer. Otherwise system defaults will be used for kernel socket buffer size and tcp nodelay.</description>
+      <value>False</value>
+    </simple>
+    <simple id="socket::receive_buffer_size" mode="readwrite" name="receive_buffer_size" type="ulong">
+      <description>Set the maximum number of bytes to read from the socket at one time.
+
+If enable is set to True, this will also set the kernel socket receive buffer size. Small sizes (i.e. 16384 Bytes) will significantly reduce throughput.</description>
+      <value>65536</value>
+      <units>Bytes</units>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <simple id="socket::tcp_nodelay" mode="readwrite" name="tcp_nodelay" type="boolean">
+      <description>If enable is set to true, this sets TCP_NODELAY on socket, which disables the Nagle algorithm.</description>
+      <value>False</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
+    </simple>
+    <configurationkind kindtype="configure"/>
+  </struct>
   <struct id="sri" mode="readwrite">
     <description>bulkio sri metadata for this bulkio stream</description>
     <simple id="xstart" type="double">
