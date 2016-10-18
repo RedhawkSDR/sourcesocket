@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           rh.sourcesocket
-Version:        2.0.0
-Release:        3%{?dist}
+Version:        2.1.0
+Release:        1%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components

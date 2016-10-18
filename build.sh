@@ -21,9 +21,9 @@ if [ "$1" = "rpm" ]; then
     if [ -e rh.sourcesocket.spec ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
-        cp -r ${mydir} ${tmpdir}/rh.sourcesocket-2.0.0
-        tar czf ${tmpdir}/rh.sourcesocket-2.0.0.tar.gz --exclude=".svn" -C ${tmpdir} rh.sourcesocket-2.0.0
-        rpmbuild -ta ${tmpdir}/rh.sourcesocket-2.0.0.tar.gz
+        cp -r ${mydir} ${tmpdir}/rh.sourcesocket-2.1.0
+        tar czf ${tmpdir}/rh.sourcesocket-2.1.0.tar.gz --exclude=".svn" -C ${tmpdir} rh.sourcesocket-2.1.0
+        rpmbuild -ta ${tmpdir}/rh.sourcesocket-2.1.0.tar.gz
         rm -rf $tmpdir
     else
         echo "Missing RPM spec file in" `pwd`
