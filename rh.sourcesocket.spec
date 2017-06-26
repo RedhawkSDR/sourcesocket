@@ -89,3 +89,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_prefix}/dom/components/rh/sourcesocket/sourcesocket.spd.xml
 %{_prefix}/dom/components/rh/sourcesocket/cpp
 
+%changelog
+* Wed Jun 21 2017 Ryan Bauman <rbauman@lgsinnovations.com> - 2.1.0-2
+- Mass rebuild for REDHAWK 2.1.1
+
