@@ -198,7 +198,7 @@ int sourcesocket_i::serviceFunction() {
     unsigned int multSize;
     activePorts_.clear();
     {
-        boost::recursive_mutex::scoped_lock(xferLock_);
+        boost::recursive_mutex::scoped_lock lock(xferLock_);
         maxBytes = max_bytes;
         minBytes = min_bytes;
         byteSwap = byte_swap;
