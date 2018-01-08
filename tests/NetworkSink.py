@@ -239,7 +239,7 @@ class NetworkSink(io_helpers._SinkBase):
 
             (retval, timestamps) = self._sink.retrieveData()
 
-            if len(retval) == 0:
+            if not retval or len(retval) == 0:
                 time.sleep(0.1)
                 continue
             data = self._formatData(retval)
