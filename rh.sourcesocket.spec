@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           rh.sourcesocket
 Version:        2.1.1
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components
